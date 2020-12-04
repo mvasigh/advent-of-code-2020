@@ -36,7 +36,7 @@ fn is_valid(candidate: &String, exhaustive: bool) -> bool {
             let key = &caps[1];
             let value = &caps[2];
 
-            match key {
+            let valid_key_val: bool = match key {
                 "hgt" => {
                     if !HGT_RE.is_match(value) {
                         return false;
@@ -48,57 +48,32 @@ fn is_valid(candidate: &String, exhaustive: bool) -> bool {
                         .as_str();
                     let measurement: u16 = hgt_caps.get(1).unwrap().as_str().parse().unwrap();
 
-                    if unit == "cm" {
-                        if measurement < 150 || measurement > 193 {
-                            return false;
-                        }
-                    }
-
-                    if unit == "in" {
-                        if measurement < 59 || measurement > 76 {
-                            return false;
-                        }
+                    match unit {
+                        "cm" => measurement >= 150 && measurement <= 193,
+                        "in" => measurement >= 59 && measurement <= 76,
+                        &_ => false,
                     }
                 }
                 "byr" => {
                     let byr: u16 = value.parse().expect("Could not parse byr");
-                    if byr < 1920 || byr > 2002 {
-                        return false;
-                    }
+                    byr >= 1920 && byr <= 2002
                 }
                 "iyr" => {
                     let iyr: u16 = value.parse().expect("Could not parse iyr");
-                    if iyr < 2010 || iyr > 2020 {
-                        return false;
-                    }
+                    iyr >= 2010 && iyr <= 2020
                 }
                 "eyr" => {
                     let eyr: u16 = value.parse().expect("Could not parse eyr");
-                    if eyr < 2020 || eyr > 2030 {
-                        return false;
-                    }
+                    eyr >= 2020 && eyr <= 2030
                 }
-                "hcl" => {
-                    if !HCL_RE.is_match(value) {
-                        return false;
-                    }
-                }
-                "ecl" => {
-                    if !ECL_RE.is_match(value) {
-                        return false;
-                    }
-                }
-                "pid" => {
-                    if !PID_RE.is_match(value) {
-                        return false;
-                    }
-                }
-                "cid" => {
-                    // do nothing
-                }
-                &_ => {
-                    return false;
-                }
+                "hcl" => HCL_RE.is_match(value),
+                "ecl" => ECL_RE.is_match(value),
+                "pid" => PID_RE.is_match(value),
+                &_ => key == "cid",
+            };
+
+            if !valid_key_val {
+                return false;
             }
         }
     }

@@ -1,6 +1,12 @@
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufReader, Lines};
+
+struct ResponseGroup {
+    responses: String,
+    size: u16,
+}
 
 struct InputDataReader {
     lines: Lines<BufReader<File>>,
@@ -17,28 +23,34 @@ impl InputDataReader {
 }
 
 impl Iterator for InputDataReader {
-    type Item = String;
+    type Item = ResponseGroup;
 
-    fn next(&mut self) -> Option<String> {
-        let mut owned_str = String::new();
+    fn next(&mut self) -> Option<ResponseGroup> {
+        let mut responses = String::new();
+        let mut size: u16 = 0;
+
         while let Some(Ok(line)) = self.lines.next() {
             if line.is_empty() {
-                return Some(owned_str);
+                return Some(ResponseGroup {
+                    responses: responses,
+                    size: size,
+                });
             }
-            owned_str += &line;
+            size += 1;
+            responses += &line;
         }
-        if owned_str.is_empty() {
+        if responses.is_empty() {
             return None;
         }
-        Some(owned_str)
+        Some(ResponseGroup {
+            responses: responses,
+            size: size,
+        })
     }
 }
 
 fn get_input_data() -> InputDataReader {
-    InputDataReader::new("data.txt").expect(
-        "Something went wrong while reading input data
-",
-    )
+    InputDataReader::new("data.txt").expect("Something went wrong while reading input data")
 }
 
 fn part_one() -> usize {
@@ -46,13 +58,35 @@ fn part_one() -> usize {
     let mut count = 0;
 
     for group in input_reader {
-        let chars = group.chars().collect::<std::collections::HashSet<char>>();
+        let chars = group.responses.chars().collect::<HashSet<char>>();
         count += chars.len();
     }
+    count
+}
 
+fn part_two() -> i32 {
+    let input_reader = get_input_data();
+    let mut count = 0;
+
+    for group in input_reader {
+        let responses = group.responses;
+        let mut charmap: HashMap<char, u16> = HashMap::new();
+
+        for character in responses.chars() {
+            let counter = charmap.entry(character).or_insert(0);
+            *counter += 1;
+        }
+
+        for val in charmap.values() {
+            if val == &group.size {
+                count += 1;
+            }
+        }
+    }
     count
 }
 
 fn main() {
     println!("Part 1: {}", part_one());
+    println!("Part 2: {}", part_two());
 }

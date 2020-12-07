@@ -46,6 +46,35 @@ fn get_container_input() -> HashMap<String, HashMap<String, u16>> {
     all_bags
 }
 
+fn get_content_input() -> HashMap<String, HashMap<String, u16>> {
+    let container_re =
+        Regex::new(r"([\w ]+) bags contain").expect("Could not compile container regex");
+    let contents_re = Regex::new(r"(?P<num>\d) (?P<bagtype>[\w\s]+) bag")
+        .expect("Could not compile contents regex");
+
+    let mut all_bags: HashMap<String, HashMap<String, u16>> = HashMap::new();
+
+    for line in get_input_reader().expect("Could not read file").lines() {
+        let line_str = line.expect("Could not read line");
+
+        let container = container_re
+            .captures(&line_str)
+            .unwrap()
+            .get(1)
+            .unwrap()
+            .as_str()
+            .to_string();
+
+        let record = all_bags.entry(container).or_insert(HashMap::new());
+
+        for caps in contents_re.captures_iter(&line_str) {
+            record.insert(caps["bagtype"].to_string(), caps["num"].parse().unwrap());
+        }
+    }
+
+    all_bags
+}
+
 fn find_containers(input: &HashMap<String, HashMap<String, u16>>, key: &str) -> HashSet<String> {
     if !input.contains_key(key) {
         return HashSet::new();
@@ -70,21 +99,30 @@ fn find_containers(input: &HashMap<String, HashMap<String, u16>>, key: &str) -> 
     containers
 }
 
+fn find_content_count(input: &HashMap<String, HashMap<String, u16>>, key: &str) -> u16 {
+    let contents_map = input.get(key).expect("Could not find the correct key");
+    let mut contents = contents_map
+        .values()
+        .map(|v| v.to_owned())
+        .fold(0, |acc, curr| acc + curr);
+
+    for (content_bag, ct) in contents_map.iter() {
+        contents += ct * find_content_count(input, content_bag);
+    }
+
+    contents
+}
+
 fn part_one() -> usize {
     let containers = find_containers(&get_container_input(), "shiny gold");
     containers.len()
 }
 
-// fn part_two() -> usize {
-
-// }
+fn part_two() -> u16 {
+    find_content_count(&get_content_input(), "shiny gold")
+}
 
 fn main() {
     println!("Part 1: {}", part_one());
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn example_test() {}
+    println!("Part 2: {}", part_two());
 }

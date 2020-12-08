@@ -3,22 +3,22 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
 
-// !`acc` - increases or decreases a single global value called the accumulator by the value given in the argument. For example, acc +7 would increase the accumulator by 7. The accumulator starts at 0. After an acc instruction, the instruction immediately below it is executed next.
-
-// !`jmp` - jumps to a new instruction relative to itself. The next instruction to execute is found using the argument as an offset from the jmp instruction; for example, jmp +2 would skip the next instruction, jmp +1 would continue to the instruction immediately below it, and jmp -20 would cause the instruction 20 lines above to be executed next.
-
-// !`nop` - stands for No OPeration - it does nothing. The instruction immediately below it is executed next.
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Command {
     Jmp,
     Acc,
     Nop,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Instruction {
     cmd: Command,
     val: i32,
+}
+
+enum ExitCondition {
+    Loop,
+    Overflow,
+    Valid,
 }
 
 fn get_input_data() -> Vec<Instruction> {
@@ -47,13 +47,57 @@ fn get_input_data() -> Vec<Instruction> {
     return vec;
 }
 
-fn run_til_repeat() -> i32 {
+fn run_till_uncorrupt() -> i32 {
     let instr_vec = get_input_data();
+
+    let mut acc = 0;
+
+    for (i, instr) in instr_vec.iter().enumerate() {
+        match instr.cmd {
+            Command::Acc => {
+                // do nothing
+            }
+            Command::Jmp => {
+                let mut cloned_vec = instr_vec.to_vec();
+                cloned_vec[i] = Instruction {
+                    cmd: Command::Nop,
+                    val: instr.val,
+                };
+                let (cloned_acc, exit_condition) = run_program(&cloned_vec);
+                match exit_condition {
+                    ExitCondition::Valid => {
+                        acc = cloned_acc;
+                    }
+                    _ => {}
+                }
+            }
+            Command::Nop => {
+                let mut cloned_vec = instr_vec.to_vec();
+                cloned_vec[i] = Instruction {
+                    cmd: Command::Jmp,
+                    val: instr.val,
+                };
+                let (cloned_acc, exit_condition) = run_program(&cloned_vec);
+                match exit_condition {
+                    ExitCondition::Valid => {
+                        acc = cloned_acc;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    acc
+}
+
+fn run_program(instr_vec: &Vec<Instruction>) -> (i32, ExitCondition) {
     let mut history: HashSet<i32> = HashSet::new();
+    let instr_len = instr_vec.len();
     let mut acc = 0;
     let mut pointer: i32 = 0;
 
-    while !history.contains(&pointer) {
+    while !history.contains(&pointer) && pointer < instr_len as i32 {
         history.insert(pointer);
         let instr = &instr_vec[pointer as usize];
         match instr.cmd {
@@ -70,13 +114,26 @@ fn run_til_repeat() -> i32 {
         }
     }
 
-    acc
+    if history.contains(&pointer) {
+        (acc, ExitCondition::Loop)
+    } else if pointer == instr_len as i32 {
+        (acc, ExitCondition::Valid)
+    } else {
+        (acc, ExitCondition::Overflow)
+    }
 }
 
 fn part_one() -> i32 {
-    run_til_repeat()
+    let input_data = get_input_data();
+    let result = run_program(&input_data);
+    result.0
+}
+
+fn part_two() -> i32 {
+    run_till_uncorrupt()
 }
 
 fn main() {
     println!("Part 1: {}", part_one());
+    println!("Part 2: {}", part_two());
 }

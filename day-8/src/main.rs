@@ -54,9 +54,6 @@ fn run_till_uncorrupt() -> i32 {
 
     for (i, instr) in instr_vec.iter().enumerate() {
         match instr.cmd {
-            Command::Acc => {
-                // do nothing
-            }
             Command::Jmp => {
                 let mut cloned_vec = instr_vec.to_vec();
                 cloned_vec[i] = Instruction {
@@ -85,6 +82,7 @@ fn run_till_uncorrupt() -> i32 {
                     _ => {}
                 }
             }
+            _ => {}
         }
     }
 

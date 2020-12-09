@@ -28,7 +28,7 @@ fn find_sum_contiguous(candidates: Vec<u64>, target: u64) -> Option<Vec<u64>> {
 
         let mut set: Vec<u64> = Vec::new();
         let mut sum = *val1;
-        let slice = &candidates[(i + 1)..candidates.len()].to_vec();
+        let slice = &candidates[(i + 1)..candidates.len()];
 
         for val2 in slice.iter() {
             sum += val2;

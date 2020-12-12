@@ -51,6 +51,51 @@ fn part_one() -> i32 {
     dx.abs() + dy.abs()
 }
 
+fn rotate(mut pt: (i32, i32), rotations: i32) -> (i32, i32) {
+    let clockwise = rotations > 0;
+    let mut iterations = rotations.abs();
+
+    while iterations > 0 {
+        pt = if clockwise {
+            (pt.1, pt.0 * -1)
+        } else {
+            (pt.1 * -1, pt.0)
+        };
+        iterations -= 1;
+    }
+    pt
+}
+
+fn part_two() -> i32 {
+    let input_reader = get_input_reader().expect("Could not read input data");
+
+    let mut dx = 0;
+    let mut dy = 0;
+    let mut waypoint = (10, 1); // (x, y)
+
+    for line_result in input_reader.lines() {
+        let line = line_result.expect("Could not read line");
+        let (command, raw_value) = line.split_at(1);
+        let value: i32 = raw_value.parse().unwrap();
+
+        match command {
+            "N" => waypoint.1 += value,
+            "E" => waypoint.0 += value,
+            "S" => waypoint.1 -= value,
+            "W" => waypoint.0 -= value,
+            "R" => waypoint = rotate(waypoint, value / 90),
+            "L" => waypoint = rotate(waypoint, -1 * value / 90),
+            "F" => {
+                dx += waypoint.0 * value;
+                dy += waypoint.1 * value;
+            }
+            &_ => {} // default case
+        }
+    }
+    dx.abs() + dy.abs()
+}
+
 fn main() {
     println!("Part 1: {}", part_one());
+    println!("Part 2: {}", part_two());
 }

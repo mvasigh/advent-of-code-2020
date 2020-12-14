@@ -81,11 +81,8 @@ fn part_one() -> u64 {
         let line = line_result.expect("Could not get raw line");
         let instr = parse_line(line).expect("Could not parse instruction");
 
-        // match on instruction kind
         match instr.kind {
-            // - if a Mask instruction, set the mask to be the new one
             InstructionKind::Mask => mask = instr.mask.unwrap(),
-            // - if an Insert instruction, apply the mask to the value and insert at address
             InstructionKind::Insert => {
                 let new_value = apply_mask(instr.value.unwrap(), &mask);
                 let entry = memory.entry(instr.address.unwrap()).or_insert(0);

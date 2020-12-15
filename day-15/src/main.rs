@@ -46,5 +46,5 @@ fn part_two() -> usize {
 
 fn main() {
     println!("Part 1: {}", part_one());
-    println!("Part 1: {}", part_two());
+    println!("Part 2: {}", part_two());
 }

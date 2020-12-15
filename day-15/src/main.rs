@@ -45,6 +45,7 @@ fn part_two() -> usize {
 }
 
 fn main() {
+    // ! Use `cargo run --release` for this one 
     println!("Part 1: {}", part_one());
     println!("Part 2: {}", part_two());
 }

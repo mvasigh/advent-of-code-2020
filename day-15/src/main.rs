@@ -8,9 +8,10 @@ fn get_nth_number(n: usize, seed: &Vec<usize>) -> usize {
     let mut count: usize = 0;
     let mut used_indices: HashMap<usize, (Option<usize>, Option<usize>)> = HashMap::new();
     let mut last_num = 0;
+    let seed_len = seed.len();
 
     while count < n {
-        let is_seed = count < seed.len();
+        let is_seed = count < seed_len;
         let num = if is_seed {
             *seed.get(count).unwrap()
         } else {
@@ -45,6 +46,5 @@ fn part_two() -> usize {
 
 fn main() {
     println!("Part 1: {}", part_one());
-    // ! This is totally a brute force 💪 solution that takes forever to run
     println!("Part 1: {}", part_two());
 }

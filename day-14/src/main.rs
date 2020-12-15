@@ -108,7 +108,6 @@ fn apply_mask_v2(val: u64, mask: &String) -> Vec<u64> {
         }
     }
 
-    // u64::from_str_radix(&new_val, 2).expect("Could not parse binary")
     new_vals.iter().map(|s| u64::from_str_radix(s, 2).expect("Could not parse binary")).collect::<Vec<u64>>()
 }
 

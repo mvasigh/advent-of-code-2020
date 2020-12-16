@@ -9,7 +9,6 @@ fn get_input_data() -> (HashMap<String, HashSet<i32>>, Vec<i32>, Vec<Vec<i32>>) 
     let raw_your_ticket = chunks.next().expect("Could not get your ticket");
     let raw_other_tickets = chunks.next().expect("Could not get other tickets");
 
-    // Process ranges
     let field_re = Regex::new(r"(?P<fieldname>[\w\s]+): (?P<r1start>\d+)-(?P<r1end>\d+) or (?P<r2start>\d+)-(?P<r2end>\d+)").expect("Failed to compile field regex");
     let mut fields: HashMap<String, HashSet<i32>> = HashMap::new();
 
@@ -27,13 +26,11 @@ fn get_input_data() -> (HashMap<String, HashSet<i32>>, Vec<i32>, Vec<Vec<i32>>) 
     }
 
     let ticket_re = Regex::new(r"(\d+)").expect("Could not compile ticket regex");
-    // Process your ticket
     let your_ticket = ticket_re
         .captures_iter(raw_your_ticket)
         .map(|c| c[0].parse::<i32>().unwrap())
         .collect::<Vec<i32>>();
 
-    // Process other ticket
     let mut other_tickets: Vec<Vec<i32>> = Vec::new();
     for line in raw_other_tickets.split("\n").skip(1) {
         other_tickets.push(
@@ -76,6 +73,15 @@ fn get_all_valid_tickets(
     (valid_tickets, invalid_sum)
 }
 
+fn exclude_multi_candidates(candidates: &Vec<HashSet<&String>>) -> HashSet<String> {
+    candidates
+        .to_vec()
+        .iter()
+        .filter(|c| c.len() == 1)
+        .map(|c| c.iter().next().unwrap().to_string())
+        .collect::<HashSet<String>>()
+}
+
 fn part_one() -> i32 {
     let (fields, _, other_tickets) = get_input_data();
 
@@ -87,10 +93,8 @@ fn part_one() -> i32 {
 fn part_two() -> u64 {
     let (fields, your_ticket, other_tickets) = get_input_data();
 
-    // Strip out all invalid tickets
     let (valid_tickets, _) = get_all_valid_tickets(&fields, &other_tickets);
 
-    // Determine candidates for each index on tickets, where every value at that index satisfies a field range
     let len = valid_tickets[0].len();
     let mut field_candidates: Vec<HashSet<&String>> = vec![HashSet::new(); len];
 
@@ -114,12 +118,7 @@ fn part_two() -> u64 {
         }
     }
 
-    let mut finalized = field_candidates
-        .to_vec()
-        .iter()
-        .filter(|c| c.len() == 1)
-        .map(|c| c.iter().next().unwrap().to_string())
-        .collect::<HashSet<String>>();
+    let mut finalized = exclude_multi_candidates(&field_candidates);
 
     while finalized.len() < len {
         for field in field_candidates.iter_mut() {
@@ -130,12 +129,7 @@ fn part_two() -> u64 {
             }
         }
 
-        finalized = field_candidates
-            .to_vec()
-            .iter()
-            .filter(|c| c.len() == 1)
-            .map(|c| c.iter().next().unwrap().to_string())
-            .collect::<HashSet<String>>();
+        finalized = exclude_multi_candidates(&field_candidates);
     }
 
     field_candidates

@@ -47,15 +47,21 @@ fn get_input_data() -> (HashMap<String, HashSet<i32>>, Vec<i32>, Vec<Vec<i32>>) 
     (fields, your_ticket, other_tickets)
 }
 
-fn get_all_valid_tickets(fields: &HashMap<String, HashSet<i32>>, tickets: &Vec<Vec<i32>>) -> (Vec<Vec<i32>>, i32) {
+fn get_all_valid_tickets(
+    fields: &HashMap<String, HashSet<i32>>,
+    tickets: &Vec<Vec<i32>>,
+) -> (Vec<Vec<i32>>, i32) {
     let mut valid_tickets: Vec<Vec<i32>> = Vec::new();
     let mut invalid_sum = 0;
 
     let all_valid_values: HashSet<i32> =
-        fields.to_owned().iter_mut().fold(HashSet::new(), |mut acc, (_, set)| {
-            acc.extend(set.iter().copied().collect::<HashSet<i32>>());
-            acc
-        });
+        fields
+            .to_owned()
+            .iter_mut()
+            .fold(HashSet::new(), |mut acc, (_, set)| {
+                acc.extend(set.iter().copied().collect::<HashSet<i32>>());
+                acc
+            });
 
     'outer: for ticket in tickets.iter() {
         for value in ticket.iter() {
@@ -78,19 +84,73 @@ fn part_one() -> i32 {
     invalid_sum
 }
 
-fn part_two() {
+fn part_two() -> u64 {
     let (fields, your_ticket, other_tickets) = get_input_data();
 
     // Strip out all invalid tickets
     let (valid_tickets, _) = get_all_valid_tickets(&fields, &other_tickets);
 
     // Determine candidates for each index on tickets, where every value at that index satisfies a field range
+    let len = valid_tickets[0].len();
+    let mut field_candidates: Vec<HashSet<&String>> = vec![HashSet::new(); len];
 
-    // Determine the order of fields on the tickets
+    for i in 0..len {
+        let mut candidates = fields.keys().collect::<HashSet<&String>>();
 
-    // Apply those fields to our ticket, and multiply "departure" fields together
+        for ticket in valid_tickets.iter() {
+            for field in candidates.to_owned().iter() {
+                let possible_values = fields
+                    .get(field.to_owned())
+                    .expect("Could not find set of values");
+                let value = &ticket[i];
+
+                if !possible_values.contains(value) {
+                    candidates.remove(field);
+                }
+            }
+        }
+        if candidates.len() >= 1 {
+            field_candidates[i] = candidates;
+        }
+    }
+
+    let mut finalized = field_candidates
+        .to_vec()
+        .iter()
+        .filter(|c| c.len() == 1)
+        .map(|c| c.iter().next().unwrap().to_string())
+        .collect::<HashSet<String>>();
+
+    while finalized.len() < len {
+        for field in field_candidates.iter_mut() {
+            if field.len() > 1 {
+                for final_field in finalized.iter() {
+                    field.remove(final_field);
+                }
+            }
+        }
+
+        finalized = field_candidates
+            .to_vec()
+            .iter()
+            .filter(|c| c.len() == 1)
+            .map(|c| c.iter().next().unwrap().to_string())
+            .collect::<HashSet<String>>();
+    }
+
+    field_candidates
+        .iter()
+        .enumerate()
+        .map(|(i, f)| (i, f.iter().next().unwrap().to_string()))
+        .fold(1, |mut acc, (i, f)| {
+            if f.starts_with("departure") {
+                acc *= your_ticket[i] as u64
+            }
+            acc
+        })
 }
 
 fn main() {
     println!("Part 1: {}", part_one());
+    println!("Part 2: {}", part_two());
 }

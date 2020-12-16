@@ -52,27 +52,51 @@ fn get_input_data() -> (HashMap<String, HashSet<i32>>, Vec<i32>, Vec<Vec<i32>>) 
     (fields, your_ticket, other_tickets)
 }
 
-fn part_one() -> i32 {
+fn get_all_valid_tickets(fields: &HashMap<String, HashSet<i32>>, tickets: &Vec<Vec<i32>>) -> (Vec<Vec<i32>>, i32) {
+    let mut valid_tickets: Vec<Vec<i32>> = Vec::new();
     let mut invalid_sum = 0;
-    let (mut fields, _, other_tickets) = get_input_data();
 
     let all_valid_values: HashSet<i32> =
         fields
+            .to_owned()
             .iter_mut()
             .fold(HashSet::new(), |mut acc, (_, set)| {
                 acc.extend(set.iter().copied().collect::<HashSet<i32>>());
                 acc
             });
 
-    for ticket in other_tickets.iter() {
+    'outer: for ticket in tickets.iter() {
         for value in ticket.iter() {
             if !all_valid_values.contains(value) {
                 invalid_sum += value;
+                continue 'outer;
             }
         }
+        valid_tickets.push(ticket.to_owned());
     }
 
+    (valid_tickets, invalid_sum)
+}
+
+fn part_one() -> i32 {
+    let (fields, _, other_tickets) = get_input_data();
+
+    let (_, invalid_sum) = get_all_valid_tickets(&fields, &other_tickets);
+
     invalid_sum
+}
+
+fn part_two() {
+    let (fields, your_ticket, other_tickets) = get_input_data();
+
+    // Strip out all invalid tickets
+    let (valid_tickets, _) = get_all_valid_tickets(&fields, &other_tickets);
+
+    // Determine candidates for each index on tickets, where every value at that index satisfies a field range
+
+    // Determine the order of fields on the tickets
+
+    // Apply those fields to our ticket, and multiply "departure" fields together
 }
 
 fn main() {

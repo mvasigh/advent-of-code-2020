@@ -17,18 +17,13 @@ fn get_input_data() -> (HashMap<String, HashSet<i32>>, Vec<i32>, Vec<Vec<i32>>) 
         let caps = field_re
             .captures(line)
             .expect("Could not match 'fields' line");
-        let mut all_possible_vals: HashSet<i32> = HashSet::new();
-        let r1_start = caps["r1start"].parse::<i32>().unwrap();
-        let r1_end = caps["r1end"].parse::<i32>().unwrap();
-        let r2_start = caps["r2start"].parse::<i32>().unwrap();
-        let r2_end = caps["r2end"].parse::<i32>().unwrap();
-
-        for i in r1_start..r2_end + 1 {
-            if (i >= r1_start && i <= r1_end) || (i >= r2_start && i <= r2_end) {
-                all_possible_vals.insert(i);
-            }
-        }
-        fields.insert(caps["fieldname"].to_owned(), all_possible_vals);
+        let mut set = (caps["r1start"].parse::<i32>().unwrap()
+            ..caps["r1end"].parse::<i32>().unwrap() + 1)
+            .collect::<HashSet<i32>>();
+        set.extend(
+            caps["r2start"].parse::<i32>().unwrap()..caps["r2end"].parse::<i32>().unwrap() + 1,
+        );
+        fields.insert(caps["fieldname"].to_owned(), set);
     }
 
     let ticket_re = Regex::new(r"(\d+)").expect("Could not compile ticket regex");
@@ -57,13 +52,10 @@ fn get_all_valid_tickets(fields: &HashMap<String, HashSet<i32>>, tickets: &Vec<V
     let mut invalid_sum = 0;
 
     let all_valid_values: HashSet<i32> =
-        fields
-            .to_owned()
-            .iter_mut()
-            .fold(HashSet::new(), |mut acc, (_, set)| {
-                acc.extend(set.iter().copied().collect::<HashSet<i32>>());
-                acc
-            });
+        fields.to_owned().iter_mut().fold(HashSet::new(), |mut acc, (_, set)| {
+            acc.extend(set.iter().copied().collect::<HashSet<i32>>());
+            acc
+        });
 
     'outer: for ticket in tickets.iter() {
         for value in ticket.iter() {

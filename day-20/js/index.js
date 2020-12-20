@@ -31,20 +31,21 @@ class Tile {
         return this.rows.reduce((acc, curr, i) => {
             if (i === 0) {
                 acc.n = curr.join('');
-            } else if (i === 9) {
+            } else if (i === curr.length - 1) {
                 acc.s = curr.join('');
             }
             acc.w += curr[0];
-            acc.e += curr[9];
+            acc.e += curr[curr.length - 1];
             return acc;
         }, { n: '', s: '', e: '', w: ''})
     }
 
     rotate() {
-        const rotated = Array(10).fill(null).map(r => Array(10).fill(null));
-        for (let i = 0; i < 10; i++) {
-            for (let j = 0; j < 10; j++) {
-                rotated[i][j] = this.rows[10 - j - 1][i];
+        const len = this.rows.length;
+        const rotated = Array(len).fill(null).map(r => Array(len).fill(null));
+        for (let i = 0; i < len; i++) {
+            for (let j = 0; j < len; j++) {
+                rotated[i][j] = this.rows[len - j - 1][i];
             }
         }
         this.rows = rotated;

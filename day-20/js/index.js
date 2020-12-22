@@ -1,11 +1,9 @@
-const data = require("./data");
+const data = require('./data');
 
 class Tile {
   constructor({ id, rows, rotation = 0, flipX = false, flipY = false }) {
     this.id = id;
-    this.rows = rows.map((row) =>
-      row.split("").map((c) => (c === "#" ? 1 : 0))
-    );
+    this.rows = rows.map((row) => row.split('').map((c) => (c === '#' ? 1 : 0)));
     this.rotation = rotation;
     this._flipX = flipX;
     this._flipY = flipY;
@@ -14,7 +12,7 @@ class Tile {
   toJSON() {
     return {
       id: this.id,
-      rows: this.rows.map((r) => r.map((c) => (c ? "#" : ".")).join("")),
+      rows: this.rows.map((r) => r.map((c) => (c ? '#' : '.')).join('')),
       edges: this.edges(),
     };
   }
@@ -22,27 +20,45 @@ class Tile {
   clone() {
     return new Tile({
       id: this.id,
-      rows: this.rows.map((row) => row.map((c) => (c ? "#" : ".")).join("")),
+      rows: this.rows.map((row) => row.map((c) => (c ? '#' : '.')).join('')),
       rotation: this.rotation,
       flipX: this._flipX,
       flipY: this._flipY,
     });
   }
 
+  stringify() {
+    return this.rows.map(r => r.map(el => el ? '#' : '.').join('')).join('\n');
+  }
+
+  size() {
+    return this.rows.length;
+  }
+
   edges() {
     return this.rows.reduce(
       (acc, curr, i) => {
         if (i === 0) {
-          acc.n = curr.join("");
+          acc.n = curr.join('');
         } else if (i === curr.length - 1) {
-          acc.s = curr.join("");
+          acc.s = curr.join('');
         }
         acc.w += curr[0];
         acc.e += curr[curr.length - 1];
         return acc;
       },
-      { n: "", s: "", e: "", w: "" }
+      { n: '', s: '', e: '', w: '' }
     );
+  }
+
+  trim() {
+    this.rows = this.rows
+      .map((row) => {
+        row.shift();
+        row.pop();
+        return row;
+      })
+      .filter((_, i, arr) => i !== 0 && i !== arr.length - 1);
   }
 
   rotate() {
@@ -116,8 +132,8 @@ function getPairedEdges(allEdges) {
   const uniques = {};
   const matches = {};
   const pairs = [
-    ["n", "s"],
-    ["e", "w"],
+    ['n', 's'],
+    ['e', 'w'],
   ];
   outer: for (let [edge, dirs] of Object.entries(allEdges)) {
     let unique = true;
@@ -165,37 +181,174 @@ function getTilesFromEdges(edges) {
 function getCornerTiles(tiles, uniqueEdges) {
   const corners = [];
   const pairs = [
-    ["n", "e"],
-    ["n", "w"],
-    ["s", "e"],
-    ["s", "w"],
+    ['n', 'e'],
+    ['n', 'w'],
+    ['s', 'e'],
+    ['s', 'w'],
   ];
 
   for (let tile of tiles) {
     let edges = tile.edges();
     for (let [_1, _2] of pairs) {
       if (uniqueEdges[edges[_1]] && uniqueEdges[edges[_2]]) {
-        corners.push(tile);
+        corners.push({ tile, dir: _1 + _2 });
       }
     }
   }
   return corners;
 }
 
+function getNeighbors(grid, x, y) {
+  return [
+    ['n', grid[y - 1]?.[x]],
+    ['e', grid[y]?.[x + 1]],
+    ['s', grid[y + 1]?.[x]],
+    ['w', grid[y]?.[x - 1]],
+  ].reduce((acc, [key, val]) => {
+    if (val) {
+      acc[key] = val;
+    }
+    return acc;
+  }, {});
+}
+
+function createTileFromImage(image) {
+  // First, trim the tile
+  image.forEach((col) => col.forEach((tile) => tile.trim()));
+
+  // Next, figure out how big the image is
+  const size = image[0][0].size() * image.length;
+
+  // Now, make a 2d array for the image size
+  const stitched = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null));
+
+  for (let i = 0; i < stitched.length; i++) {
+    for (let j = 0; j < stitched.length; j++) {
+      const tile = image[Math.floor(i / image.length)][Math.floor(j / image.length)];
+      stitched[j][i] = tile.rows[i % tile.rows.length][j % tile.rows.length];
+    }
+  }
+
+  return new Tile({
+    rows: stitched.map((col) => col.map((c) => (c ? '#' : '.')).join('')),
+  });
+}
+
+function createImageFromCorner(size = 10, corner, edges) {
+  const turns = { sw: 1, nw: 0, ne: 3, se: 2 };
+  const opposites = { n: 's', e: 'w', s: 'n', w: 'e' };
+
+  const { tile, dir: cornerDir } = corner;
+  const usedTiles = new Set([corner.tile.id]);
+  const image = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null));
+
+  let x = 0;
+  let y = 0;
+
+  for (let i = 0; i < turns[cornerDir]; i++) {
+    tile.rotate();
+  }
+
+  image[y][x] = tile;
+
+  while (usedTiles.size < size * size) {
+    let currX = x % size;
+    let currY = y % size;
+
+    const neighbors = getNeighbors(image, currX, currY);
+    const currTile = image[y][x];
+
+    if (!currTile) {
+      const candidates = [];
+      for (let [dir, tile] of Object.entries(neighbors)) {
+        candidates.push(...edges[tile.edges()[opposites[dir]]][dir].filter((tile) => !usedTiles.has(tile.id)));
+      }
+      image[currY][currX] = candidates[0];
+      usedTiles.add(candidates[0].id);
+    }
+
+    x += 1;
+    if (x > 0 && x % size === 0) {
+      y += 1;
+    }
+  }
+  return image;
+}
+
+function findSeaMonsters(_tile) {  
+  let monsters = 0;
+
+  const monster = [
+    '                  # ',
+    '#    ##    ##    ###',
+    ' #  #  #  #  #  #   ',
+  ].map(r => r.split('').map(char => char === '#'))
+  const permutations = getPermutations(_tile);
+
+  for (let tile of permutations) {
+    if (monsters > 0) {
+      break;
+    }
+
+    let x1 = 0;
+    let x2 = monster[0].length - 1;
+    let y1 = 0;
+    let y2 = monster.length - 1;
+
+
+    while (x2 < tile.rows[0].length && y2 < tile.rows.length) {
+      let isMonster = true;
+
+      outer: for (let i = 0; i < monster.length; i++) {
+        for (let j = 0; j < monster[0].length; j++) {
+          const checkMonster = monster[i][j];
+          if (checkMonster && !tile.rows[y1 + i][x1 + j]) {
+            isMonster = false;
+            break outer;
+          }
+        }
+      }
+
+      if (isMonster) {
+        monsters += 1;
+      }
+
+      if (x2 === tile.rows[0].length - 1) {
+        x1 = 0;
+        x2 = monster[0].length - 1;
+        y1 += 1;
+        y2 += 1;
+      } else {
+        x1 += 1;
+        x2 += 1;
+      }
+    }
+  }
+
+  return monsters;
+}
+
 function partOne() {
-  const tiles = createTiles();
-  const allEdges = getAllEdges(tiles);
-  const { uniques: uniqueEdges } = getPairedEdges(allEdges);
-  const uniqueEdgeTiles = getTilesFromEdges(uniqueEdges);
-  const corners = getCornerTiles(uniqueEdgeTiles, uniqueEdges);
-  return corners.reduce((acc, curr) => (acc *= curr.id), 1);
+  const { uniques: uniqueEdges } = getPairedEdges(getAllEdges(createTiles()));
+  const corners = getCornerTiles(getTilesFromEdges(uniqueEdges), uniqueEdges);
+  return corners.reduce((acc, curr) => (acc *= curr.tile.id), 1);
 }
 
 function partTwo() {
   const tiles = createTiles();
   const allEdges = getAllEdges(tiles);
-  const { matches: pairedEdges } = getPairedEdges(allEdges);
+  const { uniques: uniqueEdges } = getPairedEdges(allEdges);
+  const [corner] = getCornerTiles(getTilesFromEdges(uniqueEdges), uniqueEdges);
+  const image = createImageFromCorner(Math.sqrt(tiles.length), corner, allEdges);
+  const tile = createTileFromImage(image);
+  console.log(tile);
+  // return findSeaMonsters(tile);
+
 }
 
-console.log("Part 1: ", partOne());
-console.log("Part 2: ", partTwo());
+console.log('Part 1: ', partOne());
+// console.log('Part 2: ', partTwo());

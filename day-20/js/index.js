@@ -28,7 +28,7 @@ class Tile {
   }
 
   stringify() {
-    return this.rows.map(r => r.map(el => el ? '#' : '.').join('')).join('\n');
+    return this.rows.map((r) => r.map((el) => (el ? '#' : '.')).join('')).join('\n');
   }
 
   size() {
@@ -213,27 +213,33 @@ function getNeighbors(grid, x, y) {
 }
 
 function createTileFromImage(image) {
+  // TODO: Rewrite
   // First, trim the tile
   image.forEach((col) => col.forEach((tile) => tile.trim()));
 
   // Next, figure out how big the image is
-  const size = image[0][0].size() * image.length;
+  const tileSize = image[0][0].size();
+  const size = tileSize * image.length;
 
   // Now, make a 2d array for the image size
   const stitched = Array(size)
     .fill(null)
     .map(() => Array(size).fill(null));
 
-  for (let i = 0; i < stitched.length; i++) {
-    for (let j = 0; j < stitched.length; j++) {
-      const tile = image[Math.floor(i / image.length)][Math.floor(j / image.length)];
-      stitched[j][i] = tile.rows[i % tile.rows.length][j % tile.rows.length];
+  // Fill each pixel in with the corresponding value from a nested tile
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
+      const tile = image[Math.floor(i / tileSize)][Math.floor(j / tileSize)];
+      const value = tile.rows[i % tileSize][j % tileSize];
+      stitched[i][j] = value;
     }
   }
 
   return new Tile({
     rows: stitched.map((col) => col.map((c) => (c ? '#' : '.')).join('')),
-  });
+  })
+    .rotate()
+    .rotate();
 }
 
 function createImageFromCorner(size = 10, corner, edges) {
@@ -279,15 +285,15 @@ function createImageFromCorner(size = 10, corner, edges) {
   return image;
 }
 
-function findSeaMonsters(_tile) {  
+function findSeaMonsters(_tile) {
   let monsters = 0;
 
-  const monster = [
-    '                  # ',
-    '#    ##    ##    ###',
-    ' #  #  #  #  #  #   ',
-  ].map(r => r.split('').map(char => char === '#'))
+  const monster = ['                  # ', '#    ##    ##    ###', ' #  #  #  #  #  #   '].map((r) =>
+    r.split('').map((char) => char === '#')
+  );
   const permutations = getPermutations(_tile);
+
+  let monsterPixels;
 
   for (let tile of permutations) {
     if (monsters > 0) {
@@ -299,9 +305,11 @@ function findSeaMonsters(_tile) {
     let y1 = 0;
     let y2 = monster.length - 1;
 
+    monsterPixels = new Set();
 
     while (x2 < tile.rows[0].length && y2 < tile.rows.length) {
       let isMonster = true;
+      const hashes = [];
 
       outer: for (let i = 0; i < monster.length; i++) {
         for (let j = 0; j < monster[0].length; j++) {
@@ -309,11 +317,16 @@ function findSeaMonsters(_tile) {
           if (checkMonster && !tile.rows[y1 + i][x1 + j]) {
             isMonster = false;
             break outer;
+          } else if (checkMonster && tile.rows[y1 + i][x1 + j]) {
+            hashes.push(`${y1 + i},${x1 + j}`);
           }
         }
       }
 
       if (isMonster) {
+        for (let hash of hashes) {
+          monsterPixels.add(hash);
+        }
         monsters += 1;
       }
 
@@ -329,7 +342,10 @@ function findSeaMonsters(_tile) {
     }
   }
 
-  return monsters;
+  return (
+    _tile.rows.map((col) => col.reduce((acc, curr) => acc + curr)).reduce((acc, curr) => acc + curr) -
+    monsterPixels.size
+  );
 }
 
 function partOne() {
@@ -345,10 +361,8 @@ function partTwo() {
   const [corner] = getCornerTiles(getTilesFromEdges(uniqueEdges), uniqueEdges);
   const image = createImageFromCorner(Math.sqrt(tiles.length), corner, allEdges);
   const tile = createTileFromImage(image);
-  console.log(tile);
-  // return findSeaMonsters(tile);
-
+  return findSeaMonsters(tile);
 }
 
 console.log('Part 1: ', partOne());
-// console.log('Part 2: ', partTwo());
+console.log('Part 2: ', partTwo());
